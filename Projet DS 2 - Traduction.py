@@ -2,7 +2,7 @@
 """
 Created on Mon Nov 11 13:31:38 2019
 
-@author: Vince
+@author: Maxence
 """
 
 
@@ -32,8 +32,8 @@ def load_vec(emb_path, nmax=50000):
     embeddings = np.vstack(vectors)
     return embeddings, id2word, word2id
 
-tgt_path = '/Users/vince/DataProjetNLP/wiki.multi.en.vec.txt'
-src_path = '/Users/vince/DataProjetNLP/wiki.multi.fr.vec.txt'
+src_path = r'C:\Users\Maxen\Downloads\ok\ok\wiki.multi.fr.vec'
+tgt_path = r'C:\Users\Maxen\Downloads\ok\ok\wiki.multi.en.vec'
 nmax = 50000  # maximum number of word embeddings to load
 
 src_embeddings, src_id2word, src_word2id = load_vec(src_path, nmax)
@@ -58,10 +58,11 @@ def load_dic(path):
     Z = np.vstack (vectors_tgt)
     return dico_full,X,Z
 
-path_train = '/Users/vince/DataProjetNLP/fr-en.0-5000.txt'
-path_test = '/Users/vince/DataProjetNLP/fr-en.5000-6500.txt'
+path_train = r'C:\Users\Maxen\Downloads\ok\ok\fr-en.0-5000.txt'
+path_test = r'C:\Users\Maxen\Downloads\ok\ok\fr-en.5000-6500.txt'
 dico_train, X_train, Z_train = load_dic(path_train)
 dico_test, X_test, Z_test = load_dic(path_test)
+
 
 # LINEAR TRANSFORM : Translation Matrix W 
 
@@ -77,10 +78,9 @@ def dC_dW(W,X,Z):
         S=S+2*np.outer((np.dot(W,X[i])-Z[i]),X[i])
     return S
 
-#W = np.random.rand(300,300)
-#eta = 0.001
- #N = 300
-def gradientDescent(eta,N):
+#descente de gradient batch 
+    
+def gradientDescent(eta,N): 
     #W = np.eye(300)
     W = np.random.rand(300,300)
     valeur_C = []
@@ -101,21 +101,60 @@ def gradientDescent(eta,N):
     #print(np.linalg.norm(dC_dW(W,X_train,Z_train)))
     return (W,valeur_C,acc_test,acc_train)
 
-#ou descente de gradient stochastique
-def SGD()
-    norm_grad = []
+
+#ou descente de gradient stochastique, ou mini batch
+    
+def SGD_ou_minibatch(eta,N,nb):
+    #W = np.eye(300)
+    grad=0
+    W = np.random.rand(300,300)
+    valeur_C = []
     for t in range(N):
         print(t)
-        l = np.random.randint(low=0,high=len(dico_train)) 
-        tmp_W = W 
-        W = W - eta*dC_dW(tmp_W,X_train,Z_train)
+        tmp_W = W
+        if nb>1 :
+            l = np.random.choice(len(dico_train),nb) #mini batch gd
+            for p in l :
+                grad+=(2*np.outer((np.dot(tmp_W,X_train[p])-Z_train[p]),X_train[p]))
+        else :
+            l = np.random.randint(low=0,high=len(dico_train)) #stochastic gd
+            grad+=(2*np.outer((np.dot(tmp_W,X_train[l])-Z_train[l]),X_train[l]))
+        grad=(1/nb)*grad
+        W=W-eta*grad
         valeur_C.append(C(W,X_train,Z_train))
     print(valeur_C)
     print(dC_dW(W,X_train,Z_train))
     print(np.linalg.norm(dC_dW(W,X_train,Z_train)))
+    return (W,valeur_C)
 
 
-#ORTHOGONAL TRANSFORM 
+#ORTHOGONAL TRANSFORM : Translation Matrix W 
+
+def C_ortho(W,X,Z):
+    S=0
+    for i in range(X.shape[0]):
+        S+=(W.dot(X[i])).reshape(1,300).dot(Z[i].reshape(300,1))
+    return S
+
+def dC_dW_ortho(W,X,Z):
+    S=0
+    for i in range(X.shape[0]):
+        S+=np.outer(X[i],Z[i])
+    return S
+
+def Orthogonal_GD(alpha,N):
+    W=np.random.rand(300,300)
+    valeur_C_ortho=[]
+    for t in range(N):
+        print(t)
+        tmp_W = W
+        W=W+alpha*dC_dW_ortho(tmp_W,X_train,Z_train)
+        valeur_C_ortho.append(C_ortho(W,X_train,Z_train))
+    #rajouter contrainte d'orthogonalité sur W 
+    print(valeur_C_ortho)
+    print(dC_dW_ortho(W,X_train,Z_train))
+    print(np.linalg.norm(dC_dW_ortho(W,X_train,Z_train)))
+    return(W,valeur_C_ortho)
 
 
 #validation : sur dico_test, X_test et Z_test
